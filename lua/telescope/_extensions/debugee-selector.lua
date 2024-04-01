@@ -75,7 +75,11 @@ end
 
 -- M.show_debugee_candidates()
 
-return M
+return telescope.register_extension({
+        exports = {
+                show_debugee_candidates = M.show_debugee_candidates
+        }
+}) 
 
 
 -- Commandline to find all executables in a folder
