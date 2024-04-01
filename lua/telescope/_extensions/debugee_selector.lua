@@ -7,7 +7,7 @@ local utils = require('telescope.previewers.utils')
 local config = require('telescope.config').values
 
 local log = require('plenary.log'):new()
-log.level = 'debug'
+-- log.level = 'debug'
 
 local searchPathRoot = "/Users/svenbergner/Repos/SSE/Release/30/build/mac-SSE-ub-debug"
 
