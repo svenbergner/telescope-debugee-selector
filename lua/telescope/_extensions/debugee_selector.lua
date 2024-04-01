@@ -29,6 +29,7 @@ local show_debugee_candidates = function(opts)
                                    string.find(entry, "plugins ") or
                                    string.find(entry, "CMakeFiles") or
                                    string.find(entry, ".dylib") or
+                                   string.find(entry, "jdk/bin") or
                                    string.find(entry, "Resources")
                                 then
                                         return nil
