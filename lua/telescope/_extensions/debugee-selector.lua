@@ -11,15 +11,14 @@ log.level = 'debug'
 
 local searchPathRoot = "/Users/svenbergner/Repos/SSE/Release/30/build/mac-SSE-ub-debug"
 
-local M = {}
 
 local getFileInfo = function (filepath)
         local shortendFilePath = string.sub(filepath, string.len(searchPathRoot)+1)
         local output = "Debuggee: " .. "..." .. shortendFilePath
-        return output 
+        return output
 end
 
-M.show_debugee_candidates = function(opts)
+local show_debugee_candidates = function(opts)
         pickers.new(opts, {
                 finder = finders.new_async_job({
                         command_generator = function()
@@ -73,13 +72,13 @@ M.show_debugee_candidates = function(opts)
         }):find()
 end
 
--- M.show_debugee_candidates()
+-- show_debugee_candidates()
 
 return require("telescope").register_extension({
         exports = {
-                show_debugee_candidates = M.show_debugee_candidates
+                show_debugee_candidates = show_debugee_candidates
         }
-}) 
+})
 
 
 -- Commandline to find all executables in a folder
