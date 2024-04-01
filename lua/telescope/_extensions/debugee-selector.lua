@@ -75,7 +75,7 @@ end
 
 -- M.show_debugee_candidates()
 
-return telescope.register_extension({
+return require("telescope").register_extension({
         exports = {
                 show_debugee_candidates = M.show_debugee_candidates
         }
