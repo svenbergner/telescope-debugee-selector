@@ -10,6 +10,7 @@ local log = require('plenary.log'):new()
 -- log.level = 'debug'
 
 -- local searchPathRoot = "/Users/svenbergner/Repos/SSE/Release/30/build/mac-SSE-ub-debug"
+local searchPathRoot = ""
 
 
 local getFileInfo = function(filepath)
@@ -19,7 +20,7 @@ local getFileInfo = function(filepath)
 end
 
 local show_debugee_candidates = function(opts)
-        local searchPathRoot = vim.fn.input("Path to buildfolder: ", vim.fn.getcwd() .. "/", "file")
+        searchPathRoot = vim.fn.input("Path to buildfolder: ", vim.fn.getcwd() .. "/", "file")
         pickers.new(opts, {
                 finder = finders.new_async_job({
                         command_generator = function()
