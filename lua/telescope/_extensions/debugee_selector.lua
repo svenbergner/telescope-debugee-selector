@@ -18,7 +18,6 @@ local getFileInfo = function(filepath)
 end
 
 local show_debugee_candidates = function(opts)
-        -- searchPathRoot = vim.fn.input("Path to buildfolder: ", vim.fn.getcwd() .. "/", "file")
         pickers.new(opts, {
                 finder = finders.new_async_job({
                         command_generator = function()
