@@ -9,9 +9,7 @@ local config = require('telescope.config').values
 local log = require('plenary.log'):new()
 -- log.level = 'debug'
 
-local searchPathRoot = "/Users/svenbergner/Repos/SSE/build/mac-SSE-ub-debug"
--- local searchPathRoot = ""
-
+local searchPathRoot = vim.fn.getcwd()
 
 local getFileInfo = function(filepath)
         local shortendFilePath = string.sub(filepath, string.len(searchPathRoot) + 1)
