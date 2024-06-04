@@ -17,6 +17,10 @@ local getFileInfo = function(filepath)
         return output
 end
 
+local selectSearchPathRoot = function()
+        searchPathRoot = vim.fn.input('Path to executable: ', vim.fn.getcwd() .. '/', 'file');
+end
+
 local show_debugee_candidates = function(opts)
         pickers.new(opts, {
                 finder = finders.new_async_job({
@@ -77,7 +81,8 @@ show_debugee_candidates()
 
 return require("telescope").register_extension({
         exports = {
-                show_debugee_candidates = show_debugee_candidates
+                show_debugee_candidates = show_debugee_candidates,
+                selectSearchPathRoot = selectSearchPathRoot
         }
 })
 
