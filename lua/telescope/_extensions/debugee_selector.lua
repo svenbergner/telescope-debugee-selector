@@ -21,16 +21,7 @@ local selectSearchPathRoot = function()
         if (searchPathRoot == "") then
                 searchPathRoot = vim.fn.getcwd() .. '/'
         end
-        vim.ui.input(
-                {
-                        prompt = 'Path to executable: ',
-                        default = searchPathRoot,
-                        completion = 'dir'
-                },
-                function(input)
-                        searchPathRoot = input
-                end
-        );
+        searchPathRoot = vim.fn.input('Path to executable: ', searchPathRoot, 'dir');
 end
 
 local show_debugee_candidates = function(opts)
