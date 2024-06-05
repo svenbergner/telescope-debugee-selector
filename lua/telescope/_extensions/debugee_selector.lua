@@ -77,7 +77,7 @@ local show_debugee_candidates = function(opts)
         }):find()
 end
 
-show_debugee_candidates()
+-- show_debugee_candidates()
 
 return require("telescope").register_extension({
         exports = {
