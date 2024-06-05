@@ -21,7 +21,16 @@ local selectSearchPathRoot = function()
         if (searchPathRoot == "") then
                 searchPathRoot = vim.fn.getcwd() .. '/'
         end
-        searchPathRoot = vim.fn.input('Path to executable: ', searchPathRoot, 'dir');
+        vim.ui.input(
+                {
+                        prompt = 'Path to executable: ',
+                        default = searchPathRoot,
+                        completion = 'dir'
+                },
+                function(input)
+                        searchPathRoot = input
+                end
+        );
 end
 
 local show_debugee_candidates = function(opts)
@@ -89,7 +98,6 @@ return require("telescope").register_extension({
                 selectSearchPathRoot = selectSearchPathRoot
         }
 })
-
 
 -- Commandline to find all executables in a folder
 -- find . -perm +111 -type f | grep -v Frameworks | grep -v plugins | grep -v CMakeFiles | grep -v Resources
