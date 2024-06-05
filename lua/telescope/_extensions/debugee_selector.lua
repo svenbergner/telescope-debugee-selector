@@ -9,7 +9,7 @@ local config = require('telescope.config').values
 local log = require('plenary.log'):new()
 -- log.level = 'debug'
 
-local searchPathRoot = vim.fn.getcwd() .. '/'
+local searchPathRoot = ""
 
 local getFileInfo = function(filepath)
         local shortendFilePath = string.sub(filepath, string.len(searchPathRoot) + 1)
@@ -18,10 +18,16 @@ local getFileInfo = function(filepath)
 end
 
 local selectSearchPathRoot = function()
+        if (searchPathRoot == "") then
+                searchPathRoot = vim.fn.getcwd() .. '/'
+        end
         searchPathRoot = vim.fn.input('Path to executable: ', searchPathRoot, 'dir');
 end
 
 local show_debugee_candidates = function(opts)
+        if (searchPathRoot == "") then
+                selectSearchPathRoot()
+        end
         pickers.new(opts, {
                 finder = finders.new_async_job({
                         command_generator = function()
