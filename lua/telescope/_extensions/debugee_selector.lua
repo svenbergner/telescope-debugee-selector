@@ -18,7 +18,7 @@ local getFileInfo = function(filepath)
 end
 
 local selectSearchPathRoot = function()
-        searchPathRoot = vim.fn.input('Path to executable: ', searchPathRoot, 'file');
+        searchPathRoot = vim.fn.input('Path to executable: ', searchPathRoot, 'dir');
 end
 
 local show_debugee_candidates = function(opts)
@@ -76,8 +76,6 @@ local show_debugee_candidates = function(opts)
                 end
         }):find()
 end
-
--- show_debugee_candidates()
 
 return require("telescope").register_extension({
         exports = {
