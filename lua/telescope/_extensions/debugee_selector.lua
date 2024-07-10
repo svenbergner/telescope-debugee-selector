@@ -11,9 +11,20 @@ local log = require('plenary.log'):new()
 
 local searchPathRoot = ""
 
+local getShortendFilePath = function(filepath)
+        return string.sub(filepath, string.len(searchPathRoot) + 1)
+end
+
+local getFileNameFromFilePath = function(filepath)
+        return vim.fs.basename(filepath)
+end
+
 local getFileInfo = function(filepath)
-        local shortendFilePath = string.sub(filepath, string.len(searchPathRoot) + 1)
-        local output = "Debuggee: " .. "..." .. shortendFilePath
+        local output = {}
+        table.insert(output, "Filename: " .. getFileNameFromFilePath(filepath))
+        table.insert(output, "Shortpath: " .. "..." .. getShortendFilePath(filepath))
+        table.insert(output, "Size: " .. vim.fn.getfsize(filepath)/1024 .. " kb")
+        table.insert(output, "Date: " .. vim.fn.strftime('%H:%M:%S %d.%m.%Y', vim.fn.getftime(filepath)))
         return output
 end
 
@@ -63,9 +74,7 @@ local show_debugee_candidates = function(opts)
                                         0,
                                         0,
                                         true,
-                                        vim.tbl_flatten({
-                                                getFileInfo(entry.value)
-                                        })
+                                        getFileInfo(entry.value)
                                 )
                                 utils.highlighter(self.state.bufnr, 'markdown')
                         end,
