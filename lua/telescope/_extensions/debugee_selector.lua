@@ -23,7 +23,7 @@ local getFileInfo = function(filepath)
         local output = {}
         table.insert(output, "Filename: " .. getFileNameFromFilePath(filepath))
         table.insert(output, "Shortpath: " .. "..." .. getShortendFilePath(filepath))
-        table.insert(output, "Size: " .. vim.fn.getfsize(filepath)/1024 .. " kb")
+        table.insert(output, "Size: " .. vim.fn.getfsize(filepath) / 1024 .. " kb")
         table.insert(output, "Date: " .. vim.fn.strftime('%H:%M:%S %d.%m.%Y', vim.fn.getftime(filepath)))
         return output
 end
@@ -42,7 +42,13 @@ local show_debugee_candidates = function(opts)
         pickers.new(opts, {
                 finder = finders.new_async_job({
                         command_generator = function()
-                                return { "find", searchPathRoot, "-perm", "+111", "-type", "f" }
+                                if ( vim.loop.os_uname().sysname == 'Darwin' ) then
+                                        print('Mac')
+                                        return { "find", searchPathRoot, "-perm", "+111", "-type", "f" }
+                                else
+                                        print('Linux')
+                                        return { "find", searchPathRoot, "-executable", "-type", "f" }
+                                end
                         end,
                         entry_maker = function(entry)
                                 if string.find(entry, "Frameworks") or
