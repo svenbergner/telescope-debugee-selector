@@ -98,10 +98,15 @@ local show_debugee_candidates = function(opts)
         }):find()
 end
 
+local reset_serch_path = function()
+        searchPathRoot = ""
+end
+
 return require("telescope").register_extension({
         exports = {
                 show_debugee_candidates = show_debugee_candidates,
-                selectSearchPathRoot = selectSearchPathRoot
+                selectSearchPathRoot = selectSearchPathRoot,
+                reset_search_path = reset_serch_path,
         }
 })
 
