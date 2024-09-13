@@ -43,10 +43,8 @@ local show_debugee_candidates = function(opts)
                 finder = finders.new_async_job({
                         command_generator = function()
                                 if ( vim.loop.os_uname().sysname == 'Darwin' ) then
-                                        print('Mac')
                                         return { "find", searchPathRoot, "-perm", "+111", "-type", "f" }
                                 else
-                                        print('Linux')
                                         return { "find", searchPathRoot, "-executable", "-type", "f" }
                                 end
                         end,
