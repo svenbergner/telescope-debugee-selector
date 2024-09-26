@@ -11,14 +11,23 @@ local log = require('plenary.log'):new()
 
 local searchPathRoot = ""
 
+--- Removes the searchPathRoot from the given filepath
+--- @param filepath string
+--- @return string
 local getShortendFilePath = function(filepath)
         return string.sub(filepath, string.len(searchPathRoot) + 1)
 end
 
+---Returns the filename from a given filepath
+---@param filepath string
+---@return string
 local getFileNameFromFilePath = function(filepath)
         return vim.fs.basename(filepath)
 end
 
+--- Get file information
+--- @param filepath string
+--- @return table
 local getFileInfo = function(filepath)
         local output = {}
         table.insert(output, "Filename: " .. getFileNameFromFilePath(filepath))
@@ -28,6 +37,7 @@ local getFileInfo = function(filepath)
         return output
 end
 
+--- Let the user select the root path to search for executables
 local selectSearchPathRoot = function()
         if (searchPathRoot == "") then
                 searchPathRoot = vim.fn.getcwd() .. '/'
@@ -35,6 +45,8 @@ local selectSearchPathRoot = function()
         searchPathRoot = vim.fn.input('Path to executable: ', searchPathRoot, 'dir');
 end
 
+--- Show a list of all executables in the selected path
+--- @param opts any
 local show_debugee_candidates = function(opts)
         if (searchPathRoot == "") then
                 selectSearchPathRoot()
@@ -96,6 +108,7 @@ local show_debugee_candidates = function(opts)
         }):find()
 end
 
+--- Sets the search path to the default value
 local reset_serch_path = function()
         searchPathRoot = ""
 end
