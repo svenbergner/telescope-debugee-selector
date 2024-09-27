@@ -1,3 +1,4 @@
+---@diagnostic disable: inject-field
 local pickers = require('telescope.pickers')
 local finders = require('telescope.finders')
 local actions = require('telescope.actions')
@@ -7,9 +8,83 @@ local utils = require('telescope.previewers.utils')
 local config = require('telescope.config').values
 
 local log = require('plenary.log'):new()
--- log.level = 'debug'
+log.level = 'debug'
 
 local searchPathRoot = ""
+local current_index = 0
+
+local getPresetFromEntry = function(entry)
+        local startOfPreset = entry:find('"', 1) + 1
+        if startOfPreset == nil then
+                return ""
+        end
+        local endOfPreset = entry:find('"', startOfPreset + 1) - 1
+        return entry:sub(startOfPreset, endOfPreset)
+end
+
+local getDescFromEntry = function(entry)
+        local entryLen = #entry
+        local startOfDesc = entry:find('- ', 1) + 2
+        if startOfDesc == nil then
+                return ""
+        end
+        local endOfDesc = entryLen
+        return entry:sub(startOfDesc, endOfDesc)
+end
+
+local get_build_dir_from_cmake_configure_preset = function()
+        local opts = {
+                results_title = "CMake Presets",
+                prompt_title = "Select a preset",
+                default_selection_index = 0,
+                layout_strategy = "vertical",
+                layout_config = {
+                        width = 80,
+                        height = 20,
+                },
+        }
+        log.debug("get_build_dir_from_cmake_configure_preset: ", opts)
+        pickers.new(opts, {
+                finder = finders.new_async_job({
+                        command_generator = function()
+                                log.debug("command_generator:")
+                                current_index = 0
+                                return { "cmake", "--list-presets" }
+                        end,
+                        entry_maker = function(entry)
+                                log.debug("entry_maker", entry)
+                                if (not string.find(entry, '"')) then
+                                        return nil
+                                end
+                                current_index = current_index + 1
+                                local preset = getPresetFromEntry(entry)
+                                local description = getDescFromEntry(entry)
+                                return {
+                                        value = preset,
+                                        display = description,
+                                        ordinal = entry,
+                                        index = current_index,
+                                }
+                        end,
+                }),
+
+                sorter = config.generic_sorter(opts),
+
+                attach_mappings = function(prompt_bufnr)
+                        actions.select_default:replace(function()
+                                local selectedPreset = actions_state.get_selected_entry().value
+                                log.debug("attach_mappings", selectedPreset)
+                                ConfigurePreset = selectedPreset
+                                actions.close(prompt_bufnr)
+                                -- vim.cmd('wa | 20split | term cmake --preset=' .. selectedPreset)
+                                local searchPathRootCmdObj = vim.system( 'cmake --preset=' .. selectedPreset .. '| grep "\\-\\- Build files have been written to: " | sed "s/\\-\\- Build files have been written to: //"' ):wait()
+                                searchPathRoot = searchPathRootCmdObj.stdout
+                                print("searchPathRoot: " .. searchPathRoot)
+                        end)
+                        return true
+                end
+        }):find()
+end
 
 --- Removes the searchPathRoot from the given filepath
 --- @param filepath string
@@ -45,15 +120,25 @@ local selectSearchPathRoot = function()
         searchPathRoot = vim.fn.input('Path to executable: ', searchPathRoot, 'dir');
 end
 
+local getSearchPathRoot = function()
+        log.debug("getSearchPathRoot start: ", searchPathRoot)
+        searchPathRoot = require('telescope').extensions.debugee_selector.get_build_dir_from_cmake_configure_preset()
+        log.debug("getSearchPathRoot end: ", searchPathRoot)
+        return searchPathRoot
+end
+
 --- Show a list of all executables in the selected path
 --- @param opts any
 local show_debugee_candidates = function(opts)
-        if (searchPathRoot == "") then
-                selectSearchPathRoot()
-        end
+        log.debug("show_debugee_candidates: ", opts)
+        -- if (searchPathRoot == "") then
+                -- selectSearchPathRoot()
+                getSearchPathRoot()
+        -- end
         pickers.new(opts, {
                 finder = finders.new_async_job({
                         command_generator = function()
+---@diagnostic disable-next-line: undefined-field
                                 if ( vim.loop.os_uname().sysname == 'Darwin' ) then
                                         return { "find", searchPathRoot, "-perm", "+111", "-type", "f" }
                                 else
@@ -115,6 +200,7 @@ end
 
 return require("telescope").register_extension({
         exports = {
+                get_build_dir_from_cmake_configure_preset = get_build_dir_from_cmake_configure_preset,
                 show_debugee_candidates = show_debugee_candidates,
                 selectSearchPathRoot = selectSearchPathRoot,
                 reset_search_path = reset_serch_path,
