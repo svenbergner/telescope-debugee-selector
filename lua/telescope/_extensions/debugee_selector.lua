@@ -54,7 +54,8 @@ local show_debugee_candidates = function(opts)
         pickers.new(opts, {
                 finder = finders.new_async_job({
                         command_generator = function()
-                                if ( vim.loop.os_uname().sysname == 'Darwin' ) then
+                                ---@diagnostic disable-next-line: undefined-field
+                                if (vim.loop.os_uname().sysname == 'Darwin') then
                                         return { "find", searchPathRoot, "-perm", "+111", "-type", "f" }
                                 else
                                         return { "find", searchPathRoot, "-executable", "-type", "f" }
@@ -100,6 +101,7 @@ local show_debugee_candidates = function(opts)
                         actions.select_default:replace(function()
                                 local selectedFilePath = actions_state.get_selected_entry().value
                                 log.debug("attach_mappings", selectedFilePath)
+                                ---@diagnostic disable-next-line: inject-field
                                 require('dap').configurations.cpp[1].program = selectedFilePath
                                 actions.close(prompt_bufnr)
                         end)
