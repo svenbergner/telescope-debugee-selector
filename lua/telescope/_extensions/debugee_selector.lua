@@ -7,27 +7,29 @@ local utils = require('telescope.previewers.utils')
 local config = require('telescope.config').values
 
 local log = require('plenary.log'):new()
--- log.level = 'debug'
+log.level = 'debug'
 
 local searchPathRoot = ""
+local current_index = 0
+local last_selected_index = 1
 
 --- Removes the searchPathRoot from the given filepath
---- @param filepath string
---- @return string
+--- @param filepath string: The full file path
+--- @return string: The shortened file path
 local getShortendFilePath = function(filepath)
   return string.sub(filepath, string.len(searchPathRoot) + 1)
 end
 
----Returns the filename from a given filepath
----@param filepath string
----@return string
+--- Returns the filename from a given filepath
+--- @param filepath string: The full file path
+--- @return string: The filename extracted from the file path
 local getFileNameFromFilePath = function(filepath)
   return vim.fs.basename(filepath)
 end
 
 --- Get file information
---- @param filepath string
---- @return table
+--- @param filepath string: The full file path
+--- @return table: The file information
 local getFileInfo = function(filepath)
   local output = {}
   table.insert(output, "Filename: " .. getFileNameFromFilePath(filepath))
@@ -37,19 +39,117 @@ local getFileInfo = function(filepath)
   return output
 end
 
+--- Get the preset from the given entry
+--- @param entry string: The entry to extract the preset from
+--- @return string: The preset name
+local function getPresetFromEntry(entry)
+  local startOfPreset = entry:find('"', 1) + 1
+  if startOfPreset == nil then
+    return ""
+  end
+  local endOfPreset = entry:find('"', startOfPreset + 1) - 1
+  return entry:sub(startOfPreset, endOfPreset)
+end
+
+--- Get the description from the given entry
+--- @param entry string: The entry to extract the description from
+--- @return string: The description
+local function getDescFromEntry(entry)
+  local entryLen = #entry
+  local startOfDesc = entry:find('- ', 1) + 2
+  if startOfDesc == nil then
+    return ""
+  end
+  local endOfDesc = entryLen
+  return entry:sub(startOfDesc, endOfDesc)
+end
+
+--- Get the build path for the selected configuration
+local function get_build_path_for_configuration()
+  local buildPath = ""
+  local opts = {
+    results_title = "CMake Presets",
+    prompt_title = "",
+    default_selection_index = last_selected_index,
+    layout_strategy = "vertical",
+    layout_config = {
+      width = 80,
+      height = 20,
+    },
+  }
+  pickers.new(opts, {
+    finder = finders.new_async_job({
+      command_generator = function()
+        current_index = 0
+        return { "cmake", "--list-presets" }
+      end,
+      entry_maker = function(entry)
+        if (not string.find(entry, '"')) then
+          return nil
+        end
+        current_index = current_index + 1
+        local preset = getPresetFromEntry(entry)
+        local description = getDescFromEntry(entry)
+        return {
+          value = preset,
+          display = description,
+          ordinal = entry,
+          index = current_index,
+        }
+      end,
+    }),
+
+    sorter = config.generic_sorter(opts),
+
+    attach_mappings = function(prompt_bufnr)
+      actions.select_default:replace(function()
+        local selectedPreset = actions_state.get_selected_entry().value
+        last_selected_index = actions_state.get_selected_entry().index - 2
+        actions.close(prompt_bufnr)
+
+        local api = vim.api
+        api.nvim_cmd({ cmd = 'wa' }, {}) -- save all buffers
+        local cmd = 'cmake --preset=' .. selectedPreset
+        local searchString = "Build files have been written to: "
+
+        vim.fn.jobstart(cmd, {
+          stdout_buffered = false,
+          stderr_buffered = true,
+          on_stdout = function(_, data)
+            if data then
+              for _, line in ipairs(data) do
+                local buildPathStart = string.find(line, searchString)
+                if buildPathStart then
+                  buildPath = string.sub(line, buildPathStart + #searchString, -1)
+                end
+              end
+            end
+          end,
+          on_exit = function(_, code)
+            if code == 0 then
+              searchPathRoot = buildPath
+            else
+              searchPathRoot = ""
+            end
+          end,
+        })
+      end)
+      return true
+    end
+  }):find()
+end
+
 --- Let the user select the root path to search for executables
 local selectSearchPathRoot = function()
-  if (searchPathRoot == "") then
-    searchPathRoot = vim.fn.getcwd() .. '/'
-  end
-  searchPathRoot = vim.fn.input('Path to executable: ', searchPathRoot, 'dir');
+  get_build_path_for_configuration()
 end
 
 --- Show a list of all executables in the selected path
---- @param opts any
+--- @param opts any: The options for the picker
 local show_debugee_candidates = function(opts)
   if (searchPathRoot == "") then
-    selectSearchPathRoot()
+    searchPathRoot = vim.fn.getcwd() .. '/'
+    searchPathRoot = vim.fn.input('Path to executable: ', searchPathRoot, 'dir');
   end
   pickers.new(opts, {
     finder = finders.new_async_job({
@@ -115,6 +215,7 @@ local reset_serch_path = function()
   searchPathRoot = ""
 end
 
+--- Register the extension
 return require("telescope").register_extension({
   exports = {
     show_debugee_candidates = show_debugee_candidates,
