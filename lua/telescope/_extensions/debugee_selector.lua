@@ -7,11 +7,27 @@ local utils = require('telescope.previewers.utils')
 local config = require('telescope.config').values
 
 local log = require('plenary.log'):new()
-log.level = 'debug'
+-- log.level = 'debug'
 
 local searchPathRoot = ""
 local current_index = 0
 local last_selected_index = 1
+
+local function update_notification(message, title, level, timeout)
+  level = level or "info"
+  timeout = timeout or 3000
+  if #message < 1 then
+    return
+  end
+  message = string.gsub(message, "\n.*$", "")
+  vim.notify(message, level, {
+    id = title,
+    title = title,
+    position = { row = 1, col = "100%" },
+    timeout = timeout, -- Timeout in milliseconds
+  })
+end
+
 
 --- Removes the searchPathRoot from the given filepath
 --- @param filepath string: The full file path
@@ -65,7 +81,7 @@ local function getDescFromEntry(entry)
 end
 
 --- Get the build path for the selected configuration
-local function get_build_path_for_configuration()
+local function get_build_path_for_configuration(callback_opts, callback)
   local buildPath = ""
   local opts = {
     results_title = "CMake Presets",
@@ -112,6 +128,8 @@ local function get_build_path_for_configuration()
         local cmd = 'cmake --preset=' .. selectedPreset
         local searchString = "Build files have been written to: "
 
+        update_notification("CMake configure for preset: " .. selectedPreset, "CMake Preset", "info", 5000)
+
         vim.fn.jobstart(cmd, {
           stdout_buffered = false,
           stderr_buffered = true,
@@ -128,6 +146,7 @@ local function get_build_path_for_configuration()
           on_exit = function(_, code)
             if code == 0 then
               searchPathRoot = buildPath
+              callback(callback_opts)
             else
               searchPathRoot = ""
             end
@@ -137,11 +156,6 @@ local function get_build_path_for_configuration()
       return true
     end
   }):find()
-end
-
---- Let the user select the root path to search for executables
-local selectSearchPathRoot = function()
-  get_build_path_for_configuration()
 end
 
 --- Show a list of all executables in the selected path
@@ -208,6 +222,11 @@ local show_debugee_candidates = function(opts)
       return true
     end
   }):find()
+end
+
+--- Let the user select the root path to search for executables
+local selectSearchPathRoot = function(opts)
+  get_build_path_for_configuration(opts, show_debugee_candidates)
 end
 
 --- Sets the search path to the default value
