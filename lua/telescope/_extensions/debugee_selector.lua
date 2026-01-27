@@ -32,14 +32,14 @@ end
 --- Removes the searchPathRoot from the given filepath
 --- @param filepath string: The full file path
 --- @return string: The shortened file path
-local getShortendFilePath = function(filepath)
+local function get_shortend_file_path(filepath)
   return string.sub(filepath, string.len(searchPathRoot) + 1)
 end
 
 --- Returns the filename from a given filepath
 --- @param filepath string: The full file path
 --- @return string: The filename extracted from the file path
-local getFileNameFromFilePath = function(filepath)
+local function get_filename_from_filepath(filepath)
   return vim.fs.basename(filepath)
 end
 
@@ -48,8 +48,8 @@ end
 --- @return table: The file information
 local getFileInfo = function(filepath)
   local output = {}
-  table.insert(output, "Filename: " .. getFileNameFromFilePath(filepath))
-  table.insert(output, "Shortpath: " .. "..." .. getShortendFilePath(filepath))
+  table.insert(output, "Filename: " .. get_filename_from_filepath(filepath))
+  table.insert(output, "Shortpath: " .. "..." .. get_shortend_file_path(filepath))
   table.insert(output, "Size: " .. vim.fn.getfsize(filepath) / 1024 .. " kb")
   table.insert(output, "Date: " .. vim.fn.strftime('%H:%M:%S %d.%m.%Y', vim.fn.getftime(filepath)))
   return output
@@ -58,7 +58,7 @@ end
 --- Get the preset from the given entry
 --- @param entry string: The entry to extract the preset from
 --- @return string: The preset name
-local function getPresetFromEntry(entry)
+local function get_preset_from_entry(entry)
   local startOfPreset = entry:find('"', 1) + 1
   if startOfPreset == nil then
     return ""
@@ -70,7 +70,7 @@ end
 --- Get the description from the given entry
 --- @param entry string: The entry to extract the description from
 --- @return string: The description
-local function getDescFromEntry(entry)
+local function get_desc_from_entry(entry)
   local entryLen = #entry
   local startOfDesc = entry:find('- ', 1) + 2
   if startOfDesc == nil then
@@ -104,8 +104,8 @@ local function get_build_path_for_configuration(callback_opts, callback)
           return nil
         end
         current_index = current_index + 1
-        local preset = getPresetFromEntry(entry)
-        local description = getDescFromEntry(entry)
+        local preset = get_preset_from_entry(entry)
+        local description = get_desc_from_entry(entry)
         return {
           value = preset,
           display = description,
