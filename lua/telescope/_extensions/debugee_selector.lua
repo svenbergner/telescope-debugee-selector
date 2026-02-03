@@ -1,7 +1,7 @@
-local pickers = require('telescope.pickers')
-local finders = require('telescope.finders')
 local actions = require('telescope.actions')
 local actions_state = require('telescope.actions.state')
+local finders = require('telescope.finders')
+local pickers = require('telescope.pickers')
 local previewers = require('telescope.previewers')
 local utils = require('telescope.previewers.utils')
 local config = require('telescope.config').values
@@ -9,25 +9,24 @@ local config = require('telescope.config').values
 local log = require('plenary.log'):new()
 -- log.level = 'debug'
 
-local searchPathRoot = ""
+local searchPathRoot = ''
 local current_index = 0
 local last_selected_index = 1
 
 local function update_notification(message, title, level, timeout)
-  level = level or "info"
+  level = level or 'info'
   timeout = timeout or 3000
   if #message < 1 then
     return
   end
-  message = string.gsub(message, "\n.*$", "")
+  message = string.gsub(message, '\n.*$', '')
   vim.notify(message, level, {
     id = title,
     title = title,
-    position = { row = 1, col = "100%" },
-    timeout = timeout, -- Timeout in milliseconds
+    position = { row = 1, col = '100%' },
+    timeout = timeout,   -- Timeout in milliseconds
   })
 end
-
 
 --- Removes the searchPathRoot from the given filepath
 --- @param filepath string: The full file path
@@ -48,10 +47,10 @@ end
 --- @return table: The file information
 local getFileInfo = function(filepath)
   local output = {}
-  table.insert(output, "Filename: " .. get_filename_from_filepath(filepath))
-  table.insert(output, "Shortpath: " .. "..." .. get_shortend_file_path(filepath))
-  table.insert(output, "Size: " .. vim.fn.getfsize(filepath) / 1024 .. " kb")
-  table.insert(output, "Date: " .. vim.fn.strftime('%H:%M:%S %d.%m.%Y', vim.fn.getftime(filepath)))
+  table.insert(output, 'Filename: ' .. get_filename_from_filepath(filepath))
+  table.insert(output, 'Shortpath: ' .. '...' .. get_shortend_file_path(filepath))
+  table.insert(output, 'Size: ' .. vim.fn.getfsize(filepath) / 1024 .. ' kb')
+  table.insert(output, 'Date: ' .. vim.fn.strftime('%H:%M:%S %d.%m.%Y', vim.fn.getftime(filepath)))
   return output
 end
 
@@ -61,7 +60,7 @@ end
 local function get_preset_from_entry(entry)
   local startOfPreset = entry:find('"', 1) + 1
   if startOfPreset == nil then
-    return ""
+    return ''
   end
   local endOfPreset = entry:find('"', startOfPreset + 1) - 1
   return entry:sub(startOfPreset, endOfPreset)
@@ -74,7 +73,7 @@ local function get_desc_from_entry(entry)
   local entryLen = #entry
   local startOfDesc = entry:find('- ', 1) + 2
   if startOfDesc == nil then
-    return ""
+    return ''
   end
   local endOfDesc = entryLen
   return entry:sub(startOfDesc, endOfDesc)
@@ -82,146 +81,155 @@ end
 
 --- Get the build path for the selected configuration
 local function get_build_path_for_configuration(callback_opts, callback)
-  local buildPath = ""
+  local buildPath = ''
   local opts = {
-    results_title = "CMake Presets",
-    prompt_title = "",
+    results_title = 'CMake Presets',
+    prompt_title = '',
     default_selection_index = last_selected_index,
-    layout_strategy = "vertical",
+    layout_strategy = 'horizontal',
     layout_config = {
       width = 80,
       height = 20,
     },
   }
-  pickers.new(opts, {
-    finder = finders.new_async_job({
-      command_generator = function()
-        current_index = 0
-        return { "cmake", "--list-presets" }
-      end,
-      entry_maker = function(entry)
-        if (not string.find(entry, '"')) then
-          return nil
-        end
-        current_index = current_index + 1
-        local preset = get_preset_from_entry(entry)
-        local description = get_desc_from_entry(entry)
-        return {
-          value = preset,
-          display = description,
-          ordinal = entry,
-          index = current_index,
-        }
-      end,
-    }),
+  pickers
+      .new(opts, {
+        finder = finders.new_async_job({
+          command_generator = function()
+            current_index = 0
+            return { 'cmake', '--list-presets' }
+          end,
+          entry_maker = function(entry)
+            if not string.find(entry, '"') then
+              return nil
+            end
+            current_index = current_index + 1
+            local preset = get_preset_from_entry(entry)
+            local description = get_desc_from_entry(entry)
+            return {
+              value = preset,
+              display = description,
+              ordinal = entry,
+              index = current_index,
+            }
+          end,
+        }),
 
-    sorter = config.generic_sorter(opts),
+        sorter = config.generic_sorter(opts),
 
-    attach_mappings = function(prompt_bufnr)
-      actions.select_default:replace(function()
-        local selectedPreset = actions_state.get_selected_entry().value
-        last_selected_index = actions_state.get_selected_entry().index - 2
-        actions.close(prompt_bufnr)
+        attach_mappings = function(prompt_bufnr)
+          actions.select_default:replace(function()
+            local selectedPreset = actions_state.get_selected_entry().value
+            last_selected_index = actions_state.get_selected_entry().index - 2
+            actions.close(prompt_bufnr)
 
-        local api = vim.api
-        api.nvim_cmd({ cmd = 'wa' }, {}) -- save all buffers
-        local cmd = 'cmake --preset=' .. selectedPreset
-        local searchString = "Build files have been written to: "
+            local api = vim.api
+            api.nvim_cmd({ cmd = 'wa' }, {})    -- save all buffers
+            local cmd = 'cmake --preset=' .. selectedPreset
+            local searchString = 'Build files have been written to: '
 
-        update_notification("CMake configure for preset: " .. selectedPreset, "CMake Preset", "info", 5000)
+            update_notification('CMake configure for preset: ' .. selectedPreset, 'CMake Preset', 'info', 5000)
 
-        vim.fn.jobstart(cmd, {
-          stdout_buffered = false,
-          stderr_buffered = true,
-          on_stdout = function(_, data)
-            if data then
-              for _, line in ipairs(data) do
-                local buildPathStart = string.find(line, searchString)
-                if buildPathStart then
-                  buildPath = string.sub(line, buildPathStart + #searchString, -1)
+            vim.fn.jobstart(cmd, {
+              stdout_buffered = false,
+              stderr_buffered = true,
+              on_stdout = function(_, data)
+                if data then
+                  for _, line in ipairs(data) do
+                    local buildPathStart = string.find(line, searchString)
+                    if buildPathStart then
+                      buildPath = string.sub(line, buildPathStart + #searchString, -1)
+                    end
+                  end
                 end
-              end
-            end
-          end,
-          on_exit = function(_, code)
-            if code == 0 then
-              searchPathRoot = buildPath
-              callback(callback_opts)
-            else
-              searchPathRoot = ""
-            end
-          end,
-        })
-      end)
-      return true
-    end
-  }):find()
+              end,
+              on_exit = function(_, code)
+                if code == 0 then
+                  searchPathRoot = buildPath
+                  callback(callback_opts)
+                else
+                  searchPathRoot = ''
+                end
+              end,
+            })
+          end)
+          return true
+        end,
+      })
+      :find()
 end
 
 --- Show a list of all executables in the selected path
 --- @param opts any: The options for the picker
 local show_debugee_candidates = function(opts)
-  if (searchPathRoot == "") then
+  if searchPathRoot == '' then
     searchPathRoot = vim.fn.getcwd() .. '/'
-    searchPathRoot = vim.fn.input('Path to executable: ', searchPathRoot, 'dir');
+    searchPathRoot = vim.fn.input('Path to executable: ', searchPathRoot, 'dir')
   end
-  pickers.new(opts, {
-    finder = finders.new_async_job({
-      command_generator = function()
-        ---@diagnostic disable-next-line: undefined-field
-        if (vim.loop.os_uname().sysname == 'Darwin') then
-          return { "find", searchPathRoot, "-perm", "+111", "-type", "f" }
-        else
-          return { "find", searchPathRoot, "-executable", "-type", "f" }
-        end
-      end,
-      entry_maker = function(entry)
-        if string.find(entry, "Frameworks") or
-            string.find(entry, "plugins ") or
-            string.find(entry, "CMakeFiles") or
-            string.find(entry, ".dylib") or
-            string.find(entry, "jdk/bin") or
-            string.find(entry, "jdk/lib") or
-            string.find(entry, "Resources")
-        then
-          return nil
-        else
-          return {
-            value = entry,
-            display = entry,
-            ordinal = entry,
-          }
-        end
-      end,
-    }),
+  opts = opts
+      or {
+        results_title = 'Debugee Selector',
+        prompt_title = 'Select Debugee Executable',
+        layout_config = {
+          preview_width = 0.4,
+        },
+      }
+  pickers
+      .new(opts, {
+        finder = finders.new_async_job({
+          command_generator = function()
+            ---@diagnostic disable-next-line: undefined-field
+            if vim.loop.os_uname().sysname == 'Darwin' then
+              return { 'find', searchPathRoot, '-perm', '+111', '-type', 'f' }
+            else
+              return { 'find', searchPathRoot, '-executable', '-type', 'f' }
+            end
+          end,
+          entry_maker = function(entry)
+            if
+                string.find(entry, 'Frameworks')
+                or string.find(entry, 'plugins ')
+                or string.find(entry, 'CMakeFiles')
+                or string.find(entry, '.dylib')
+                or string.find(entry, 'jdk/bin')
+                or string.find(entry, 'jdk/lib')
+                or string.find(entry, 'Resources')
+            then
+              return nil
+            else
+              return {
+                value = entry,
+                display = entry,
+                ordinal = entry,
+              }
+            end
+          end,
+        }),
 
-    sorter = config.generic_sorter(opts),
+        sorter = config.generic_sorter(opts),
 
-    previewer = previewers.new_buffer_previewer {
-      title = 'Debuggee Details',
-      define_preview = function(self, entry)
-        vim.api.nvim_buf_set_lines(
-          self.state.bufnr,
-          0,
-          0,
-          true,
-          getFileInfo(entry.value)
-        )
-        utils.highlighter(self.state.bufnr, 'markdown')
-      end,
-    },
+        previewer = previewers.new_buffer_previewer({
+          title = 'Debuggee Details',
+          define_preview = function(self, entry)
+            vim.api.nvim_buf_set_lines(self.state.bufnr, 0, 0, true, getFileInfo(entry.value))
+            utils.highlighter(self.state.bufnr, 'markdown')
+            -- Enable word wrap in the preview window
+            vim.api.nvim_win_set_option(self.state.winid, 'wrap', true)
+          end,
+        }),
 
-    attach_mappings = function(prompt_bufnr)
-      actions.select_default:replace(function()
-        local selectedFilePath = actions_state.get_selected_entry().value
-        log.debug("attach_mappings", selectedFilePath)
-        ---@diagnostic disable-next-line: inject-field
-        require('dap').configurations.cpp[1].program = selectedFilePath
-        actions.close(prompt_bufnr)
-      end)
-      return true
-    end
-  }):find()
+        attach_mappings = function(prompt_bufnr)
+          actions.select_default:replace(function()
+            local selectedFilePath = actions_state.get_selected_entry().value
+            log.debug('attach_mappings', selectedFilePath)
+            ---@diagnostic disable-next-line: inject-field
+            require('dap').configurations.cpp[1].program = selectedFilePath
+            actions.close(prompt_bufnr)
+          end)
+          return true
+        end,
+      })
+      :find()
 end
 
 --- Let the user select the root path to search for executables
@@ -231,16 +239,16 @@ end
 
 --- Sets the search path to the default value
 local reset_serch_path = function()
-  searchPathRoot = ""
+  searchPathRoot = ''
 end
 
 --- Register the extension
-return require("telescope").register_extension({
+return require('telescope').register_extension({
   exports = {
     show_debugee_candidates = show_debugee_candidates,
     selectSearchPathRoot = selectSearchPathRoot,
     reset_search_path = reset_serch_path,
-  }
+  },
 })
 
 -- Commandline to find all executables in a folder
