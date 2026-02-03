@@ -1,0 +1,13 @@
+syntax = "All"
+column_width = 120
+indent_type = "Spaces"
+indent_width = 3
+quote_style = "ForceSingle"
+call_parentheses = "Always"
+space_after_function_names = "Never"
+block_newline_gaps = "Preserve"
+collapse_simple_statement = "Never"
+
+[sort_requires]
+enabled = true
+
