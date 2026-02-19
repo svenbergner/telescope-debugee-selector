@@ -32,7 +32,7 @@ end
 --- @param filepath string: The full file path
 --- @return string: The shortened file path
 local function get_shortend_file_path(filepath)
-  return string.sub(filepath, string.len(searchPathRoot) + 1)
+   return '...' .. string.sub(filepath, string.len(searchPathRoot) + 1)
 end
 
 --- Returns the filename from a given filepath
@@ -46,12 +46,12 @@ end
 --- @param filepath string: The full file path
 --- @return table: The file information
 local getFileInfo = function(filepath)
-  local output = {}
-  table.insert(output, 'Filename: ' .. get_filename_from_filepath(filepath))
-  table.insert(output, 'Shortpath: ' .. '...' .. get_shortend_file_path(filepath))
-  table.insert(output, 'Size: ' .. vim.fn.getfsize(filepath) / 1024 .. ' kb')
-  table.insert(output, 'Date: ' .. vim.fn.strftime('%H:%M:%S %d.%m.%Y', vim.fn.getftime(filepath)))
-  return output
+   local output = {}
+   table.insert(output, 'Filename: ' .. get_filename_from_filepath(filepath))
+   table.insert(output, 'Fullpath: ' .. filepath)
+   table.insert(output, 'Size: ' .. vim.fn.getfsize(filepath) / 1024 .. ' kb')
+   table.insert(output, 'Date: ' .. vim.fn.strftime('%H:%M:%S %d.%m.%Y', vim.fn.getftime(filepath)))
+   return output
 end
 
 --- Get the preset from the given entry
