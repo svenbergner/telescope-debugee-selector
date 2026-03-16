@@ -13,6 +13,7 @@ local searchPathRoot = ''
 local current_index = 0
 local last_selected_index = 1
 local last_debugee_args = ''
+local last_program = ''
 
 local state_file = vim.fn.stdpath('data') .. '/debugee_selector_state.json'
 local project_key = vim.fn.getcwd()
@@ -30,6 +31,7 @@ local function load_state()
       searchPathRoot = data.searchPathRoot or ''
       last_selected_index = data.last_selected_index or 1
       last_debugee_args = data.last_debugee_args or ''
+      last_program = data.last_program or ''
    end
 end
 
@@ -49,11 +51,36 @@ local function save_state()
       searchPathRoot = searchPathRoot,
       last_selected_index = last_selected_index,
       last_debugee_args = last_debugee_args,
+      last_program = last_program,
    }
    vim.fn.writefile({ vim.fn.json_encode(all_states) }, state_file)
 end
 
+--- Splits a space-separated argument string into a table of individual arguments
+--- @param args_str string: The argument string, e.g. "--foo bar --baz"
+--- @return table: A list of argument strings
+local function parse_args(args_str)
+   local result = {}
+   for arg in args_str:gmatch('%S+') do
+      table.insert(result, arg)
+   end
+   return result
+end
+
 load_state()
+
+-- Apply the restored program/args to the DAP config after all plugins are loaded
+vim.schedule(function()
+   if last_program ~= '' then
+      local ok, dap = pcall(require, 'dap')
+      if ok and dap.configurations.cpp and dap.configurations.cpp[1] then
+         ---@diagnostic disable-next-line: inject-field
+         dap.configurations.cpp[1].program = last_program
+         ---@diagnostic disable-next-line: inject-field
+         dap.configurations.cpp[1].args = parse_args(last_debugee_args)
+      end
+   end
+end)
 
 local function update_notification(message, title, level, timeout)
    level = level or 'info'
@@ -94,17 +121,6 @@ local getFileInfo = function(filepath)
    table.insert(output, 'Size: ' .. vim.fn.getfsize(filepath) / 1024 .. ' kb')
    table.insert(output, 'Date: ' .. vim.fn.strftime('%H:%M:%S %d.%m.%Y', vim.fn.getftime(filepath)))
    return output
-end
-
---- Splits a space-separated argument string into a table of individual arguments
---- @param args_str string: The argument string, e.g. "--foo bar --baz"
---- @return table: A list of argument strings
-local function parse_args(args_str)
-   local result = {}
-   for arg in args_str:gmatch('%S+') do
-      table.insert(result, arg)
-   end
-   return result
 end
 
 --- Get the preset from the given entry
@@ -281,6 +297,7 @@ local show_debugee_candidates = function(opts)
                -- Prompt the user for arguments to pass to the debugee
                local args_str = vim.fn.input('Debugee arguments: ', last_debugee_args)
                last_debugee_args = args_str
+               last_program = selectedFilePath
                save_state()
 
                local dap_config = require('dap').configurations.cpp[1]
