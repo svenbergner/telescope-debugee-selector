@@ -329,6 +329,19 @@ local reset_debugee_args = function()
    save_state()
 end
 
+--- Edit the debugee arguments without re-selecting the executable
+local edit_debugee_args = function()
+   local args_str = vim.fn.input('Debugee arguments: ', last_debugee_args)
+   last_debugee_args = args_str
+   save_state()
+
+   local ok, dap = pcall(require, 'dap')
+   if ok and dap.configurations.cpp and dap.configurations.cpp[1] then
+      ---@diagnostic disable-next-line: inject-field
+      dap.configurations.cpp[1].args = parse_args(args_str)
+   end
+end
+
 --- Register the extension
 return require('telescope').register_extension({
    exports = {
@@ -336,6 +349,7 @@ return require('telescope').register_extension({
       selectSearchPathRoot = selectSearchPathRoot,
       reset_search_path = reset_serch_path,
       reset_debugee_args = reset_debugee_args,
+      edit_debugee_args = edit_debugee_args,
    },
 })
 
