@@ -342,6 +342,14 @@ local edit_debugee_args = function()
    end
 end
 
+local function get_last_program()
+  return last_program
+end
+
+local function get_last_debugee_args()
+  return last_debugee_args
+end
+
 --- Register the extension
 return require('telescope').register_extension({
    exports = {
@@ -350,6 +358,8 @@ return require('telescope').register_extension({
       reset_search_path = reset_serch_path,
       reset_debugee_args = reset_debugee_args,
       edit_debugee_args = edit_debugee_args,
+      get_last_program = get_last_program,
+      get_last_debugee_args = get_last_debugee_args,
    },
 })
 
