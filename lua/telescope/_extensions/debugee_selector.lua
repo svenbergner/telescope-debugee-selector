@@ -12,6 +12,7 @@ local log = require('plenary.log'):new()
 local searchPathRoot = ''
 local current_index = 0
 local last_selected_index = 1
+local last_debugee_args = ''
 
 local function update_notification(message, title, level, timeout)
    level = level or 'info'
@@ -52,6 +53,17 @@ local getFileInfo = function(filepath)
    table.insert(output, 'Size: ' .. vim.fn.getfsize(filepath) / 1024 .. ' kb')
    table.insert(output, 'Date: ' .. vim.fn.strftime('%H:%M:%S %d.%m.%Y', vim.fn.getftime(filepath)))
    return output
+end
+
+--- Splits a space-separated argument string into a table of individual arguments
+--- @param args_str string: The argument string, e.g. "--foo bar --baz"
+--- @return table: A list of argument strings
+local function parse_args(args_str)
+   local result = {}
+   for arg in args_str:gmatch('%S+') do
+      table.insert(result, arg)
+   end
+   return result
 end
 
 --- Get the preset from the given entry
@@ -222,9 +234,17 @@ local show_debugee_candidates = function(opts)
             actions.select_default:replace(function()
                local selectedFilePath = actions_state.get_selected_entry().value
                log.debug('attach_mappings', selectedFilePath)
-               ---@diagnostic disable-next-line: inject-field
-               require('dap').configurations.cpp[1].program = selectedFilePath
                actions.close(prompt_bufnr)
+
+               -- Prompt the user for arguments to pass to the debugee
+               local args_str = vim.fn.input('Debugee arguments: ', last_debugee_args)
+               last_debugee_args = args_str
+
+               local dap_config = require('dap').configurations.cpp[1]
+               ---@diagnostic disable-next-line: inject-field
+               dap_config.program = selectedFilePath
+               ---@diagnostic disable-next-line: inject-field
+               dap_config.args = parse_args(args_str)
             end)
             return true
          end,
@@ -242,12 +262,18 @@ local reset_serch_path = function()
    searchPathRoot = ''
 end
 
+--- Resets the stored debugee arguments
+local reset_debugee_args = function()
+   last_debugee_args = ''
+end
+
 --- Register the extension
 return require('telescope').register_extension({
    exports = {
       show_debugee_candidates = show_debugee_candidates,
       selectSearchPathRoot = selectSearchPathRoot,
       reset_search_path = reset_serch_path,
+      reset_debugee_args = reset_debugee_args,
    },
 })
 
