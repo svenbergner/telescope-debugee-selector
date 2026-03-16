@@ -14,6 +14,47 @@ local current_index = 0
 local last_selected_index = 1
 local last_debugee_args = ''
 
+local state_file = vim.fn.stdpath('data') .. '/debugee_selector_state.json'
+local project_key = vim.fn.getcwd()
+
+--- Loads persisted state from disk into module variables
+local function load_state()
+   if vim.fn.filereadable(state_file) == 0 then
+      return
+   end
+   local ok, all_states = pcall(function()
+      return vim.fn.json_decode(table.concat(vim.fn.readfile(state_file), '\n'))
+   end)
+   if ok and type(all_states) == 'table' then
+      local data = all_states[project_key] or {}
+      searchPathRoot = data.searchPathRoot or ''
+      last_selected_index = data.last_selected_index or 1
+      last_debugee_args = data.last_debugee_args or ''
+   end
+end
+
+--- Persists the current state to disk
+local function save_state()
+   -- Read existing states for all projects first to avoid overwriting them
+   local all_states = {}
+   if vim.fn.filereadable(state_file) == 1 then
+      local ok, decoded = pcall(function()
+         return vim.fn.json_decode(table.concat(vim.fn.readfile(state_file), '\n'))
+      end)
+      if ok and type(decoded) == 'table' then
+         all_states = decoded
+      end
+   end
+   all_states[project_key] = {
+      searchPathRoot = searchPathRoot,
+      last_selected_index = last_selected_index,
+      last_debugee_args = last_debugee_args,
+   }
+   vim.fn.writefile({ vim.fn.json_encode(all_states) }, state_file)
+end
+
+load_state()
+
 local function update_notification(message, title, level, timeout)
    level = level or 'info'
    timeout = timeout or 3000
@@ -134,6 +175,7 @@ local function get_build_path_for_configuration(callback_opts, callback)
                local selectedPreset = actions_state.get_selected_entry().value
                last_selected_index = actions_state.get_selected_entry().index - 2
                actions.close(prompt_bufnr)
+               save_state()
 
                local api = vim.api
                api.nvim_cmd({ cmd = 'wa' }, {}) -- save all buffers
@@ -239,6 +281,7 @@ local show_debugee_candidates = function(opts)
                -- Prompt the user for arguments to pass to the debugee
                local args_str = vim.fn.input('Debugee arguments: ', last_debugee_args)
                last_debugee_args = args_str
+               save_state()
 
                local dap_config = require('dap').configurations.cpp[1]
                ---@diagnostic disable-next-line: inject-field
@@ -260,11 +303,13 @@ end
 --- Sets the search path to the default value
 local reset_serch_path = function()
    searchPathRoot = ''
+   save_state()
 end
 
 --- Resets the stored debugee arguments
 local reset_debugee_args = function()
    last_debugee_args = ''
+   save_state()
 end
 
 --- Register the extension
